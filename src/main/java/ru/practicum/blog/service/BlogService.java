@@ -23,9 +23,9 @@ public class BlogService {
     @Transactional(readOnly = true)
     public PostPage list(String search, int pageNumber, int pageSize) {
         if (pageNumber < 1 || pageSize < 1 || pageSize > 100) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid pagination");
-        String titleQuery = Arrays.stream((search == null ? "" : search).trim().split("\s+"))
+        String titleQuery = Arrays.stream((search == null ? "" : search).trim().split("\\s+"))
                 .filter(t -> !t.startsWith("#")).reduce("", (a, b) -> a.isEmpty() ? b : a + " " + b).toLowerCase(Locale.ROOT);
-        List<String> tags = Arrays.stream((search == null ? "" : search).trim().split("\s+"))
+        List<String> tags = Arrays.stream((search == null ? "" : search).trim().split("\\s+"))
                 .filter(t -> t.startsWith("#") && t.length() > 1).map(t -> t.substring(1)).toList();
         List<PostDto> filtered = posts.findAll().stream().filter(p -> p.title().toLowerCase(Locale.ROOT).contains(titleQuery))
                 .filter(p -> p.tags().containsAll(tags)).toList();

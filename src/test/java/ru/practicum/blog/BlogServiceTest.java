@@ -15,6 +15,19 @@ class BlogServiceTest {
         BlogService service = new BlogService(mock(PostRepository.class), mock(CommentRepository.class));
         assertThrows(ResponseStatusException.class, () -> service.list("", 0, 5));
     }
+    @Test void searchSupportsTabsAndNewlines() {
+        PostRepository repository = mock(PostRepository.class);
+        when(repository.findAll()).thenReturn(List.of(
+                new PostDto(1, "Java Spring", "Text", List.of("spring", "gradle"), 0, 0),
+                new PostDto(2, "Java Basics", "Text", List.of("java"), 0, 0)));
+        BlogService service = new BlogService(repository, mock(CommentRepository.class));
+
+        PostPage result = service.list("Java\t#spring\n#gradle", 1, 5);
+
+        assertEquals(1, result.posts().size());
+        assertEquals(1L, result.posts().getFirst().id());
+    }
+
     @Test void searchMatchesTitleAndTags() {
         PostRepository repository = mock(PostRepository.class);
         when(repository.findAll()).thenReturn(List.of(

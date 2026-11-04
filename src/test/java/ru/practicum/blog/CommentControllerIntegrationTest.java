@@ -74,7 +74,6 @@ class CommentControllerIntegrationTest {
 
     @Test
     void shouldCreateReadUpdateAndDeleteComment() throws Exception {
-        // 1. Create a post to avoid depending on pre-existing database data.
         String postResponse = mockMvc.perform(post("/api/posts")
                         .contentType("application/json")
                         .content("{\"title\":\"Test post\",\"text\":\"Test content\",\"tags\":[\"java\"]}"))
@@ -82,7 +81,6 @@ class CommentControllerIntegrationTest {
                 .andReturn().getResponse().getContentAsString();
         long postId = objectMapper.readTree(postResponse).get("id").asLong();
 
-        // 2. POST: create a comment; verify HTTP/JSON and the H2 row.
         String createResponse = mockMvc.perform(post("/api/posts/{postId}/comments", postId)
                         .contentType("application/json")
                         .content("{\"text\":\"First comment\",\"postId\":" + postId + "}"))
@@ -95,14 +93,12 @@ class CommentControllerIntegrationTest {
         assertEquals(1, countComment(commentId, postId));
         assertEquals("First comment", commentText(commentId));
 
-        // 3. GET: list comments for the post.
         mockMvc.perform(get("/api/posts/{postId}/comments", postId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value((int) commentId))
                 .andExpect(jsonPath("$[0].text").value("First comment"))
                 .andExpect(jsonPath("$[0].postId").value((int) postId));
 
-        // 4. PUT: update the comment.
         mockMvc.perform(put("/api/posts/{postId}/comments/{commentId}", postId, commentId)
                         .contentType("application/json")
                         .content("{\"id\":" + commentId + ",\"text\":\"Updated comment\",\"postId\":" + postId + "}"))
@@ -110,19 +106,16 @@ class CommentControllerIntegrationTest {
                 .andExpect(jsonPath("$.text").value("Updated comment"));
         assertEquals("Updated comment", commentText(commentId));
 
-        // 5. GET: make sure the updated value is returned by the REST API.
         mockMvc.perform(get("/api/posts/{postId}/comments/{commentId}", postId, commentId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value((int) commentId))
                 .andExpect(jsonPath("$.text").value("Updated comment"))
                 .andExpect(jsonPath("$.postId").value((int) postId));
 
-        // 6. DELETE: remove the comment.
         mockMvc.perform(delete("/api/posts/{postId}/comments/{commentId}", postId, commentId))
                 .andExpect(status().isOk());
         assertEquals(0, countComment(commentId, postId));
 
-        // 7. GET: the list is empty and the removed comment is not accessible.
         mockMvc.perform(get("/api/posts/{postId}/comments", postId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(0));
