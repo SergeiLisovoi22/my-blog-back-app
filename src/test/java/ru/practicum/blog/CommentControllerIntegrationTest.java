@@ -71,10 +71,13 @@ class CommentControllerIntegrationTest {
         String createResponse = mockMvc.perform(
                         post("/api/posts/{postId}/comments", postId)
                                 .contentType("application/json")
-                                .content(
-                                        "{\"text\":\"First comment\"," +
-                                                "\"postId\":" + postId + "}"
-                                )
+                                .content("""
+        {
+            "text": "First comment",
+            "postId": %d
+        }
+        """.formatted(postId))
+
                 )
                 .andExpect(status().isOk())
                 .andExpect(
@@ -118,11 +121,14 @@ class CommentControllerIntegrationTest {
                                 commentId
                         )
                                 .contentType("application/json")
-                                .content(
-                                        "{\"id\":" + commentId +
-                                                ",\"text\":\"Updated comment\"," +
-                                                "\"postId\":" + postId + "}"
-                                )
+                                .content("""
+        {
+            "id": %d,
+            "text": "Updated comment",
+            "postId": %d
+        }
+        """.formatted(commentId, postId))
+
                 )
                 .andExpect(status().isOk())
                 .andExpect(
