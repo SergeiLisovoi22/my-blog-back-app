@@ -1,149 +1,124 @@
-# My Blog — backend
+# My Blog — Backend
 
-Учебный проект Яндекс Практикума (Middle Java, спринт 3): REST API для блога с постами, комментариями, тегами, лайками и изображениями.
+Проектная работа четвертого спринта курса Middle Java Developer от Яндекс Практикума.
 
-Бэкенд реализован на **Spring Framework без Spring Boot** и развёртывается в отдельном сервлет-контейнере Apache Tomcat. React-фронтенд предоставляется вместе с заданием отдельно и не входит в этот репозиторий.
+Бэкенд приложения-блога, реализованный на Spring Boot. Проект является продолжением работы третьего спринта, выполненной на Spring Framework и Gradle.
 
 ## Технологии
 
 - Java 21
-- Spring Framework 6.2 (Spring MVC, Spring JDBC, Spring Test)
-- Gradle (Kotlin DSL), Gradle Wrapper 8.10
+- Spring Boot 3.5.16
+- Spring Web MVC
+- Spring Data JDBC / Spring JDBC
 - H2 Database
-- JUnit 5, Mockito, MockMvc
-- WAR, Apache Tomcat 10.1 (Jakarta Servlet 6)
+- Maven
+- JUnit 5, Mockito, Spring Boot Test
+- Embedded Apache Tomcat
 
-## Архитектура
+## Функциональность
 
-`Controller → Service → Repository (DAO) → H2`
-
-Основные пакеты в `src/main/java/ru/practicum/blog`:
-
-- `config` — Java-конфигурация Spring, MVC, источника данных и инициализация `DispatcherServlet`;
-- `controller` — обработчики REST-запросов;
-- `service` — бизнес-логика;
-- `repository` — SQL-запросы через Spring `JdbcTemplate`;
-- `model` — DTO запросов и ответов.
-
-Схема базы данных находится в `src/main/resources/schema.sql` и создаётся автоматически при инициализации приложения.
+- Создание, получение, редактирование и удаление постов.
+- Работа с комментариями (CRUD).
+- Поиск постов по словам и тегам.
+- Пагинация постов.
+- Лайки.
+- Загрузка и получение изображений.
 
 ## Требования для запуска
 
-- JDK 21 (сборка через Gradle Toolchains);
-- Docker Desktop с работающим Linux Engine — для варианта запуска через контейнер;
-- свободный порт **8080** для бэкенда;
-- для фронтенда — свободный порт **80** и готовый архив из задания.
+- JDK 21
+- Доступ к Maven Central для первой загрузки зависимостей
 
-Отдельно устанавливать Gradle или Tomcat при запуске через Docker не требуется.
+Maven Wrapper входит в репозиторий, поэтому отдельно устанавливать Maven не требуется.
 
-## Сборка и тесты
+## Сборка приложения
 
-В корневой директории проекта выполните в PowerShell:
+В Windows PowerShell выполните:
 
 ```powershell
-.\gradlew.bat clean test
-.\gradlew.bat clean build
+.\mvnw.cmd clean package
 ```
 
-В Linux/macOS соответствующие команды: `./gradlew clean test` и `./gradlew clean build`.
+Исполняемый JAR создается в каталоге:
 
-После сборки готовый WAR-файл находится по пути:
+`target/my-blog-back-app-0.0.1-SNAPSHOT.jar`
 
-```text
-build/libs/ROOT.war
-```
+## Запуск приложения
 
-Тесты (каталог `src/test/java`) включают юнит-тесты сервисного слоя и интеграционные проверки Spring MVC и DAO с тестовой H2. Для просмотра отчёта откройте `build/reports/tests/test/index.html` после запуска тестов.
-
-## Запуск бэкенда через Docker
-
-Команды ниже для **PowerShell из корня проекта**. После успешной сборки скачайте официальный образ Tomcat 10.1 на Java 21:
+Через Maven:
 
 ```powershell
-docker pull tomcat:10.1-jdk21-temurin-noble
+.\mvnw.cmd spring-boot:run
 ```
 
-Создайте контейнер и подключите собранный WAR-файл:
+Или из собранного JAR:
 
 ```powershell
-docker run -d --name my-blog-backend -p 8080:8080 -v "${PWD}\build\libs\ROOT.war:/usr/local/tomcat/webapps/ROOT.war:ro" tomcat:10.1-jdk21-temurin-noble
+java -jar target/my-blog-back-app-0.0.1-SNAPSHOT.jar
 ```
 
-Если контейнер **уже создан** (например, после перезагрузки компьютера), не повторяйте `docker run`; запустите существующий:
+Приложение запускается на порту `8080` со встроенным Tomcat. Внешний Tomcat не требуется.
+
+## База данных
+
+Используется встроенная H2 Database.
+
+Настройки подключения находятся в `src/main/resources/application.properties`.
+
+Структура базы данных создается автоматически при запуске приложения с помощью `schema.sql`.
+
+База работает в памяти, поэтому данные не сохраняются после остановки приложения.
+
+## REST API
+
+Основной адрес: `http://localhost:8080`
+
+Примеры:
+
+- `GET /api/posts` — получение списка постов.
+- `POST /api/posts` — создание поста.
+- `GET /api/posts/{id}` — получение поста.
+- `PUT /api/posts/{id}` — редактирование поста.
+- `DELETE /api/posts/{id}` — удаление поста.
+- `GET /api/posts/{id}/comments` — получение комментариев.
+- `POST /api/posts/{id}/comments` — создание комментария.
+- `PUT /api/posts/{id}/comments/{commentId}` — редактирование комментария.
+- `DELETE /api/posts/{id}/comments/{commentId}` — удаление комментария.
+
+## Тестирование
+
+Запуск всех тестов:
 
 ```powershell
-docker start my-blog-backend
+.\mvnw.cmd clean test
 ```
 
-Проверка работы:
+Полная сборка с тестами:
 
 ```powershell
-docker ps
-docker logs --tail 100 my-blog-backend
+.\mvnw.cmd clean package
 ```
 
-Проверить API можно через браузер:
+В проекте реализованы модульные и интеграционные тесты для сервисного слоя, MVC и DAO.
 
-```text
-http://localhost:8080/api/posts?search=&pageNumber=1&pageSize=5
-```
+Интеграционные тесты используют `@SpringBootTest`, `@AutoConfigureMockMvc`, JUnit 5 и H2. Совместимые тестовые классы используют кеширование контекста Spring.
 
-Ожидается JSON с полями `posts`, `hasPrev`, `hasNext`, `lastPage`.
+## Фронтенд
 
-**При обновлении WAR:** остановите и удалите *только* контейнер бэкенда, пересоберите WAR и выполните `docker run` заново:
+Для проверки можно использовать предоставленный Яндекс Практикумом React-фронтенд, который запускается отдельно через Docker.
 
-```powershell
-docker stop my-blog-backend
-docker rm my-blog-backend
-.\gradlew.bat clean build
-```
+Фронтенд: `http://localhost/`
 
-Затем повторите приведённую выше команду `docker run`. Удаление контейнера может удалить и данные H2, хранящиеся внутри него.
+Бэкенд: `http://localhost:8080`
 
-## Запуск фронтенда
+## Отличия от третьего спринта
 
-Распакуйте отдельный архив `my-blog-front-app`, предоставленный Яндекс Практикумом. В каталоге, содержащем его `docker-compose.yaml`, выполните:
+- Gradle заменен на Maven.
+- Spring Framework заменен на Spring Boot.
+- WAR заменен на Executable JAR.
+- Внешний Tomcat заменен встроенным.
+- Удалена ручная конфигурация запуска Servlet-контейнера.
+- Используется автоконфигурация Spring Boot для JDBC, MVC и транзакций.
+- Интеграционные тесты переведены на Spring Boot Test.
 
-```powershell
-docker compose up -d
-```
-
-Откройте фронтенд:
-
-```text
-http://localhost/
-```
-
-Браузер обращается к бэкенду по адресу `http://localhost:8080`. Исходная конфигурация фронтенда использует `network_mode: host`, поэтому для запуска на Windows может потребоваться включить **host networking** в Docker Desktop. Фронтенд поставляется отдельно и не включён в этот Git-репозиторий.
-
-Остановить фронтенд: `docker compose down` из его каталога.
-
-## Основные REST-эндпоинты
-
-| Метод | Адрес | Назначение |
-|---|---|---|
-| GET | `/api/posts?search=&pageNumber=1&pageSize=5` | Лента постов, поиск, пагинация |
-| GET | `/api/posts/{id}` | Получить пост |
-| POST | `/api/posts` | Создать пост |
-| PUT | `/api/posts/{id}` | Изменить пост |
-| DELETE | `/api/posts/{id}` | Удалить пост |
-| POST | `/api/posts/{id}/likes` | Поставить лайк |
-| PUT | `/api/posts/{id}/image` | Загрузить изображение (`multipart/form-data`, поле `image`) |
-| GET | `/api/posts/{id}/image` | Получить изображение |
-| GET | `/api/posts/{postId}/comments` | Список комментариев |
-| POST | `/api/posts/{postId}/comments` | Добавить комментарий |
-| GET | `/api/posts/{postId}/comments/{commentId}` | Получить комментарий |
-| PUT | `/api/posts/{postId}/comments/{commentId}` | Изменить комментарий |
-| DELETE | `/api/posts/{postId}/comments/{commentId}` | Удалить комментарий |
-
-Поиск учитывает слова названия и теги, обозначенные префиксом `#`. Для совместимости с формулировкой задания также реализован `POST /api/posts/{id}` для получения поста.
-
-## Хранение данных
-
-По умолчанию приложение использует файловую H2 по пути `${user.home}/my-blog-data/blog` **в той среде, где работает Tomcat**. В Docker это файловая система контейнера. Пока контейнер существует, данные в нём сохраняются при обычной остановке и повторном запуске, но **могут пропасть после удаления контейнера**. Постоянный Docker volume в базовой инструкции не настроен.
-
-В тестах используется отдельная конфигурация H2. Для локального тестового запуска возможно переопределение JDBC URL через системное свойство JVM `blog.jdbc.url`.
-
-## Git и сдача
-
-Разработка выполняется в ветке `module_one_sprint_three_branch`, созданной от `main`
+История коммитов третьего спринта сохранена в Git.

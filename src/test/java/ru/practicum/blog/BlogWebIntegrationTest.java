@@ -1,52 +1,46 @@
+
 package ru.practicum.blog;
-
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
-import org.springframework.test.context.web.WebAppConfiguration;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.WebApplicationContext;
-
-import ru.practicum.blog.config.WebConfig;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.annotation.Transactional;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebAppConfiguration
-@SpringJUnitConfig(classes = {
-        IntegrationTestConfig.class,
-        WebConfig.class
-})
+@SpringBootTest
+@AutoConfigureMockMvc
+@Transactional
 class BlogWebIntegrationTest {
 
     @Autowired
-    WebApplicationContext context;
+    private MockMvc mockMvc;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Test
     void createsPostAndFetchesItThroughMvcAndDatabase()
             throws Exception {
 
-        MockMvc mvc = MockMvcBuilders
-                .webAppContextSetup(context)
-                .build();
-
-        // Создание поста
-        String body = """
+        String requestBody = """
                 {
                     "title": "Hello",
-                    "text": "Hello Spring",
+                    "text": "Hello Spring Boot",
                     "tags": ["java"]
                 }
                 """;
 
-        String response = mvc.perform(
+        String response = mockMvc.perform(
                         post("/api/posts")
-                                .contentType("application/json")
-                                .content(body)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(requestBody)
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value("Hello"))
@@ -54,15 +48,15 @@ class BlogWebIntegrationTest {
                 .getResponse()
                 .getContentAsString();
 
-        // Получаем идентификатор созданного поста
-        JsonNode json = new ObjectMapper().readTree(response);
+        JsonNode json = objectMapper.readTree(response);
         long id = json.get("id").asLong();
 
-        // Проверяем получение поста через REST API
-        mvc.perform(get("/api/posts/{id}", id))
+        mockMvc.perform(get("/api/posts/{id}", id))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id))
                 .andExpect(
-                        jsonPath("$.text").value("Hello Spring")
+                        jsonPath("$.text")
+                                .value("Hello Spring Boot")
                 );
     }
 }

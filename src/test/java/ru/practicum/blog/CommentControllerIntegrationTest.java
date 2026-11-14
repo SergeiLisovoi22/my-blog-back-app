@@ -1,63 +1,53 @@
+
 package ru.practicum.blog;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
-import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.WebApplicationContext;
-import ru.practicum.blog.config.WebConfig;
+import org.springframework.transaction.annotation.Transactional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebAppConfiguration
-@SpringJUnitConfig(classes = {
-        IntegrationTestConfig.class,
-        WebConfig.class
-})
+@SpringBootTest
+@AutoConfigureMockMvc
+@Transactional
 class CommentControllerIntegrationTest {
 
     @Autowired
-    WebApplicationContext context;
-
-    @Autowired
-    JdbcTemplate jdbcTemplate;
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
-
     private MockMvc mockMvc;
 
-    @BeforeEach
-    void setUp() {
-        mockMvc = MockMvcBuilders
-                .webAppContextSetup(context)
-                .build();
-    }
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Test
     void shouldCreateReadUpdateAndDeleteComment()
             throws Exception {
 
-        // 1. Создаём пост для тестирования комментариев.
+        // 1. Создаём тестовый пост.
         String postResponse = mockMvc.perform(
                         post("/api/posts")
-                                .contentType("application/json")
+                                .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
                                         {
-                                          "title": "Test post",
-                                          "text": "Test content",
-                                          "tags": ["java"]
+                                            "title": "Test post",
+                                            "text": "Test content",
+                                            "tags": ["java"]
                                         }
                                         """)
                 )
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.title").value("Test post"))
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
@@ -70,14 +60,13 @@ class CommentControllerIntegrationTest {
         // 2. POST: создаём комментарий.
         String createResponse = mockMvc.perform(
                         post("/api/posts/{postId}/comments", postId)
-                                .contentType("application/json")
+                                .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
-        {
-            "text": "First comment",
-            "postId": %d
-        }
-        """.formatted(postId))
-
+                                        {
+                                            "text": "First comment",
+                                            "postId": %d
+                                        }
+                                        """.formatted(postId))
                 )
                 .andExpect(status().isOk())
                 .andExpect(
@@ -91,14 +80,13 @@ class CommentControllerIntegrationTest {
                 .getContentAsString();
 
         JsonNode created = objectMapper.readTree(createResponse);
-
         long commentId = created.get("id").asLong();
 
-        // Проверяем фактическое сохранение в H2.
+        // Проверяем сохранение в H2.
         assertEquals(1, countComment(commentId, postId));
         assertEquals("First comment", commentText(commentId));
 
-        // 3. GET: получаем список комментариев.
+        // 3. GET: получаем комментарий из списка.
         mockMvc.perform(
                         get("/api/posts/{postId}/comments", postId)
                 )
@@ -113,28 +101,28 @@ class CommentControllerIntegrationTest {
                         jsonPath("$[0].postId").value((int) postId)
                 );
 
-        // 4. PUT: редактируем комментарий.
+        // 4. PUT: изменяем комментарий.
         mockMvc.perform(
                         put(
                                 "/api/posts/{postId}/comments/{commentId}",
                                 postId,
                                 commentId
                         )
-                                .contentType("application/json")
+                                .contentType(MediaType.APPLICATION_JSON)
                                 .content("""
-        {
-            "id": %d,
-            "text": "Updated comment",
-            "postId": %d
-        }
-        """.formatted(commentId, postId))
-
+                                        {
+                                            "id": %d,
+                                            "text": "Updated comment",
+                                            "postId": %d
+                                        }
+                                        """.formatted(commentId, postId))
                 )
                 .andExpect(status().isOk())
                 .andExpect(
                         jsonPath("$.text").value("Updated comment")
                 );
 
+        // Проверяем изменение данных в H2.
         assertEquals("Updated comment", commentText(commentId));
 
         // 5. GET: проверяем обновлённый комментарий.
@@ -166,9 +154,10 @@ class CommentControllerIntegrationTest {
                 )
                 .andExpect(status().isOk());
 
+        // Проверяем удаление из H2.
         assertEquals(0, countComment(commentId, postId));
 
-        // 7. GET: проверяем, что комментарий удалён.
+        // 7. GET: проверяем отсутствие комментариев.
         mockMvc.perform(
                         get("/api/posts/{postId}/comments", postId)
                 )
@@ -177,6 +166,7 @@ class CommentControllerIntegrationTest {
                         jsonPath("$.length()").value(0)
                 );
 
+        // Удалённый комментарий должен возвращать 404.
         mockMvc.perform(
                         get(
                                 "/api/posts/{postId}/comments/{commentId}",
@@ -188,10 +178,12 @@ class CommentControllerIntegrationTest {
     }
 
     private int countComment(long commentId, long postId) {
-
         Integer count = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM comments " +
-                        "WHERE id = ? AND post_id = ?",
+                """
+                SELECT COUNT(*)
+                FROM comments
+                WHERE id = ? AND post_id = ?
+                """,
                 Integer.class,
                 commentId,
                 postId
@@ -201,7 +193,6 @@ class CommentControllerIntegrationTest {
     }
 
     private String commentText(long commentId) {
-
         return jdbcTemplate.queryForObject(
                 "SELECT body FROM comments WHERE id = ?",
                 String.class,
