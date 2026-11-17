@@ -79,11 +79,39 @@ java -jar target/my-blog-back-app-0.0.1-SNAPSHOT.jar
 - `POST /api/posts` — создание поста.
 - `GET /api/posts/{id}` — получение поста.
 - `PUT /api/posts/{id}` — редактирование поста.
+- `GET /api/posts/{id}/image` — получение изображения поста.
+- `PUT /api/posts/{id}/image` — загрузка изображения поста.
+- `POST /api/posts/{id}/likes` — поставить лайк посту.
 - `DELETE /api/posts/{id}` — удаление поста.
 - `GET /api/posts/{id}/comments` — получение комментариев.
 - `POST /api/posts/{id}/comments` — создание комментария.
 - `PUT /api/posts/{id}/comments/{commentId}` — редактирование комментария.
 - `DELETE /api/posts/{id}/comments/{commentId}` — удаление комментария.
+
+
+
+### Работа с изображениями
+
+Загрузка изображения выполняется запросом:
+
+`PUT /api/posts/{id}/image`
+
+Тип содержимого: `multipart/form-data`.
+
+Имя поля с файлом: `image`.
+
+Получение изображения:
+
+`GET /api/posts/{id}/image`
+
+### Лайки
+
+Для добавления лайка используется запрос:
+
+`POST /api/posts/{id}/likes`
+
+В ответ возвращается обновлённое количество лайков.
+
 
 ## Тестирование
 
