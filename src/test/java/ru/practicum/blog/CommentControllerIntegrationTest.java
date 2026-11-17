@@ -179,13 +179,10 @@ class CommentControllerIntegrationTest {
         return objectMapper.readTree(response).get("id").asLong();
     }
 
+
     private int countComment(long commentId, long postId) {
         Integer count = jdbcTemplate.queryForObject(
-                """
-                SELECT COUNT(*)
-                FROM comments
-                WHERE id = ? AND post_id = ?
-                """,
+                "SELECT COUNT(*) FROM comments WHERE id = ? AND post_id = ?",
                 Integer.class,
                 commentId,
                 postId
