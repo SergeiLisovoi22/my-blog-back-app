@@ -1,12 +1,13 @@
+
 package ru.practicum.blog;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
-import org.springframework.test.context.web.WebAppConfiguration;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
-import ru.practicum.blog.config.WebConfig;
 import ru.practicum.blog.model.PostDto;
 import ru.practicum.blog.model.PostRequest;
 import ru.practicum.blog.repository.PostRepository;
@@ -16,11 +17,9 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-@WebAppConfiguration
-@SpringJUnitConfig(classes = {
-        IntegrationTestConfig.class,
-        WebConfig.class
-})
+@SpringBootTest
+@AutoConfigureMockMvc
+@ActiveProfiles("test")
 @Transactional
 class BlogDaoIntegrationTest {
 
@@ -52,26 +51,13 @@ class BlogDaoIntegrationTest {
 
         comments.insert(postId, "Hello");
 
-        assertEquals(
-                1,
-                comments.list(postId).size()
-        );
-
-        assertEquals(
-                1,
-                posts.find(postId).commentsCount()
-        );
-
-        assertEquals(
-                1,
-                posts.incrementLikes(postId)
-        );
+        assertEquals(1, comments.list(postId).size());
+        assertEquals(1, posts.find(postId).commentsCount());
+        assertEquals(1, posts.incrementLikes(postId));
 
         posts.delete(postId);
 
-        assertTrue(
-                comments.list(postId).isEmpty()
-        );
+        assertTrue(comments.list(postId).isEmpty());
     }
 
     @Test
@@ -115,20 +101,14 @@ class BlogDaoIntegrationTest {
                 firstPost.tags()
         );
 
-        assertEquals(
-                2,
-                firstPost.commentsCount()
-        );
+        assertEquals(2, firstPost.commentsCount());
 
         assertEquals(
                 List.of("gradle"),
                 secondPost.tags()
         );
 
-        assertEquals(
-                0,
-                secondPost.commentsCount()
-        );
+        assertEquals(0, secondPost.commentsCount());
     }
 
     @Test
@@ -161,48 +141,28 @@ class BlogDaoIntegrationTest {
                 )
         );
 
-        List<String> words = List.of(
-                "java",
-                "spring"
-        );
-
+        List<String> words = List.of("java", "spring");
         List<String> tags = List.of("backend");
 
-        // Проверяем поиск по отдельным словам и тегу.
         assertEquals(
                 2,
                 posts.countMatching(words, tags)
         );
 
-        // Первая страница: самый новый подходящий пост.
         List<PostDto> firstPage = posts.findPage(
-                words,
-                tags,
-                1,
-                0L
+                words, tags, 1, 0L
         );
 
         assertEquals(1, firstPage.size());
-        assertEquals(
-                second,
-                firstPage.getFirst().id()
-        );
+        assertEquals(second, firstPage.getFirst().id());
 
-        // Вторая страница: следующий подходящий пост.
         List<PostDto> secondPage = posts.findPage(
-                words,
-                tags,
-                1,
-                1L
+                words, tags, 1, 1L
         );
 
         assertEquals(1, secondPage.size());
-        assertEquals(
-                first,
-                secondPage.getFirst().id()
-        );
+        assertEquals(first, secondPage.getFirst().id());
 
-        // Постов с отсутствующим тегом быть не должно.
         List<PostDto> emptyPage = posts.findPage(
                 words,
                 List.of("unknown"),

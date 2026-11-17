@@ -1,7 +1,11 @@
 /.gradle/
+/target/
 /build/
 /.idea/
 *.iml
 /out/
 /data/
 *.log
+/mvn-java21.ps1
+
+/mvn-java21.ps1
